@@ -74,6 +74,7 @@ public:
 		myfile.open("output.txt");
 		myfile << "***Paging Activity Statistics * **.\n";
 		myfile << "number of memory accesses ="<< MEM_ACCESS<<" .\n";
+		//TRIPLES = MEM_ACCESS + 1;	
 		myfile << "number of triples(1 + access) = " << TRIPLES << " .\n";
 		myfile << "number of swap ins(faults) = " << NUMBER_SWAPINS << " .\n";
 		myfile << "number of swap outs = " << NUMBER_SWAPOUTS << " .\n";
@@ -81,6 +82,7 @@ public:
 		myfile << "number of pages for Page Tables = " << NUM_PAGES_PAGETABLE << " .\n";
 		myfile << "number of page frames for user = " << NUMBER_PAGE_FRAMES << " .\n";
 		myfile << "total memory cycles = " << MEM_CYCLES << " .\n";
+		MEM_CYCLES_NO_VMM = MEM_ACCESS * REPLACEMENT_CYCLES;
 		myfile << "cycles w / o Vmm = " << MEM_CYCLES_NO_VMM << " .\n";
 		myfile << "cycles per swap_in = 5000.\n";
 		myfile << "cycles per swap_out = 5000.\n";
@@ -135,10 +137,12 @@ public:
 				curr = curr->next_disk;
 
 			curr->next_disk = newdisk;//new page will be  at the end of list of disks
+			cout << endl << "page with address: " << addr << "was added to the disk";
 		}
 		else//means we have an empty disk
 		{
 			head = newdisk;
+			cout << endl << "page with address: " << addr << "was added to head of the disk";
 		}
 	}
 	bool Remove_disk(unsigned int addr)
@@ -152,13 +156,18 @@ public:
 			curr = curr->next_disk;
 		}
 		if (curr == NULL)
+		{
 			cout << endl << "page with address: " << addr << "was not on the disk";
+			return false;
+		}
 		else
 		{
+			cout << endl << "page with address: " << addr << "was deleted from the disk";
 			delete_disk = curr;
 			curr = curr->next_disk;
 			temp->next_disk = curr;
 			delete delete_disk;
+			return true;
 		}
 	}
 	void print_disk()
@@ -188,10 +197,11 @@ class Main_Memory {
 	//dynamically allocated page frames based on page frames given by user
 	PageTable_entry** page_frames;
 	DiskBlock disk;
-	Main_Memory()
+public:
+	Main_Memory(int max_frames)
 	{
-		page_frames = new PageTable_entry*[NUMBER_PAGE_FRAMES];
-		num_free_frame_left = NUMBER_PAGE_FRAMES;
+		page_frames = new PageTable_entry*[max_frames];
+		num_free_frame_left = max_frames;
 	}
 
 	~Main_Memory()
@@ -215,16 +225,25 @@ class Main_Memory {
 		}
 		else
 		{
+
+			index_frame = num_free_frame_left - 1;		//fill in pages from last spot to first spot
 			++ LAST_WORKING_SET;
 			if (MAX_PHYSICAL_PAGES < NUMBER_PAGE_FRAMES) ++MAX_PHYSICAL_PAGES;
 			if (MAX_WORKING_SET < MAX_PHYSICAL_PAGES)  ++MAX_WORKING_SET;
-			//fill in pages from last spot to first spot
-			index_frame = num_free_frame_left - 1;
-			take_free_frame();	//remove a free frame
-			page_frames[index_frame] = pt_entry;
-			pt_entry->Presentbit = true;				//set present bit to true to indicate its in memory
+			pt_entry->index_of_frame = index_frame;
+			cout << "\n addresses stored at frame " << index_frame << " is page addr: " << pt_entry->address;
+			
+			cout << "\n page frames left " << num_free_frame_left;
+			take_free_frame();							//remove a free frame
+			cout << "\n After take_free_frame() page frames left: " << num_free_frame_left ;
 
+			page_frames[index_frame] = pt_entry;
+			cout << "\npage_frames[index_frame]->address" << page_frames[index_frame]->address;
+			pt_entry->Presentbit = true;				//set present bit to true to indicate its in memory
+			pt_entry->index_of_frame = index_frame;
+			
 		}
+		
 	}
 
 	void delete_freeframes()
@@ -280,8 +299,6 @@ class Main_Memory {
 //possible page replacement
 
 
-//function to check for swap out
-
 void Read_Input_file(string filename) {
 	string myText;						// myText is used to read lines from the file with stringstream
 	string first_line;
@@ -290,14 +307,15 @@ void Read_Input_file(string filename) {
 	int address2;
 	int page_frames;
 
-	//PageDirectory_entry PD_array[2];
 	PageTable* PD_array;
-	PD_array = new PageTable[2];
+	PD_array = new PageTable[1024];
 	
-
-	ofstream debugfile;
+	
+	ofstream debugfile, tracefile;
 	debugfile.open("debug.txt");
 	debugfile << "*****Debug file*******";
+	tracefile.open("trace.txt");
+	tracefile << "*****Trace file*******";
 
 	// Read from the text file
 	ifstream MyReadFile(filename.c_str());
@@ -311,8 +329,11 @@ void Read_Input_file(string filename) {
 		istr1 >> page_frames;
 		debugfile << "\nRead in the number of max number of user page frames: " << character[0] << " " << page_frames;
 		NUMBER_PAGE_FRAMES = (page_frames > 0) ? page_frames : 1; //if number of page frames is less than 0 use 1 page frame
+		cout << "\n NUMBER_PAGE_FRAMES read in: " << NUMBER_PAGE_FRAMES;
+		++TRIPLES;
+		
 	}
-
+	Main_Memory mem(NUMBER_PAGE_FRAMES);
 	// Use a while loop together with the getline() function to read the file line by line
 	while (getline(MyReadFile, myText)) {
 		// Output the text from the file
@@ -325,6 +346,7 @@ void Read_Input_file(string filename) {
 
 			if (character[0] == 'w' || character[0] == 'W')	//check for write 
 			{
+				++TRIPLES;
 				debugfile << "\nWrite operation: " << character[0];
 				istr1 >> address1 >> address2;
 				debugfile << "\naddress1 " << address1 << "\naddress2 " << address2;
@@ -335,9 +357,12 @@ void Read_Input_file(string filename) {
 				debugfile << "\npage_table_index " << page_table_index;
 				debugfile << "\npage_dir_index " << page_dir_index;
 				//call a write function
+				++MEM_ACCESS;
 			}
 			else if (character[0] == 'r' || character[0] == 'R')
 			{
+				++TRIPLES;
+				++MEM_ACCESS;		//read is a memory access
 				debugfile << "\nRead operation: " << character[0];
 				istr1 >> address1;
 				debugfile << "\naddress1 " << address1;
@@ -348,13 +373,13 @@ void Read_Input_file(string filename) {
 				debugfile << "\npage_table_index " << page_table_index;
 				debugfile << "\npage_dir_index " << page_dir_index;
 									
-				if ((PD_array[page_dir_index]).exists == 0)
+				if ((PD_array[page_dir_index]).exists == 0)				//no page directory entry exists for this index
 				{ 
-					cout << "\nPD[" << page_dir_index << "] is NULL: 1 cycle";
+					debugfile << "\n page Fault occured at pd["<< page_dir_index <<"]";
+					tracefile << "\nPD[" << page_dir_index << "] is NULL: 1 cycle";
 					++MEM_CYCLES;
 					PD_array[page_dir_index].exists = 1;		//make a page table entry associated with this page directory index
 					MEM_CYCLES += SWAP_COST;
-					//resize array if index reference is bigger then current page table size
 					cout << "\nPD[" << page_dir_index << "] allocates new page table: 5000 cycles -- start output 1 read";
 					++MEM_CYCLES;
 					cout << "\nPD[" << page_dir_index << "] = address of page table[" << page_dir_index << "], 1 cycle ";
@@ -366,29 +391,25 @@ void Read_Input_file(string filename) {
 						cout << "\nPT[" << page_table_index << "] is NULL: 10 cycles";
 						MEM_CYCLES += SWAP_COST;
 						cout << "\nPT[" << page_table_index << "] allocates new page : 5000 cycles";
-						MEM_CYCLES += REPLACEMENT_CYCLES;
-						cout << "\nPT[" << page_table_index << "] is address, 10 cycles";
 						PD_array[page_dir_index].pt_entries[page_table_index].address = get_address(page_table_index, page_dir_index);
-						cout << "\nPT[" << page_table_index << "] is address "<< PD_array[page_dir_index].pt_entries[page_table_index].address <<", 10 cycles";
 						MEM_CYCLES += REPLACEMENT_CYCLES;
+						cout << "\nPT[" << page_table_index << "] is address "<< PD_array[page_dir_index].pt_entries[page_table_index].address <<", 10 cycles";
 						cout << "\nR address + " << page_offset << " ,10 cycles";
-						//make a page frame with this
-						//set the page as present
-						//set page frame index
-						//INCREASE MEM_ACCESS
+						PageTable_entry* temp_ptr = &(PD_array[page_dir_index].pt_entries[page_table_index]);
+						cout << "\n Before Change presentbit " << PD_array[page_dir_index].pt_entries[page_table_index].Presentbit;
+						mem.allocate_free_frames(temp_ptr);
+						cout << "\n After Change address " << PD_array[page_dir_index].pt_entries[page_table_index].address;
+						cout << "\n After Change presentbit " << PD_array[page_dir_index].pt_entries[page_table_index].Presentbit;
 					}
-					else													//page is currently in memory and has page frame
+					else  //page is currently in memory and has page frame
 					{
 						MEM_CYCLES += REPLACEMENT_CYCLES ;
 						PD_array[page_dir_index].pt_entries[page_table_index].address = get_address(page_table_index, page_dir_index);
 						cout << "\nPT[" << page_table_index << "] is address " << PD_array[page_dir_index].pt_entries[page_table_index].address << ", 10 cycles";
 						MEM_CYCLES += REPLACEMENT_CYCLES;
 						cout << "\nR address + " << page_offset << " ,10 cycles";
-						//INCREASE MEM_ACCESS
 					}
-					{
 
-					}
 				}
 				else
 				{
@@ -406,8 +427,10 @@ void Read_Input_file(string filename) {
 	}
 
 	// Close the file
+	delete[] PD_array;				//free allocated memory
 	MyReadFile.close();
 	debugfile.close();
+	tracefile.close();
 }
 
 int main()
