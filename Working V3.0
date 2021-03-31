@@ -550,7 +550,7 @@ int main()
 {
 	//need to be able to pass a file from the command line
 	//need to make an program to generate inputs
-	Read_Input_file("input.txt");
+	Read_Input_file("address.txt");
 	STATS stat_file;
 	stat_file.write_to_output();
 
