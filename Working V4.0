@@ -232,6 +232,7 @@ public:
 				cout << "\n Swap out for dirty bit=1 and on disk for victim page "<< page_frames[index_frame]->address;
 				Swap_Out(page_frames, index_frame, disk);			//swap out will update the page's information, set present bit false, on disk = true
 				cost += SWAP_COST;									// add swap out cost
+				cout << "\nCOST: " << cost;
 				++NUMBER_SWAPOUTS;									//increase number of swap outs
 
 			}
@@ -241,6 +242,7 @@ public:
 				cout << "\n Swap out for dirty bit=1 and not on disk for victim page " << page_frames[index_frame]->address;
 				Swap_Out(page_frames, index_frame, disk);			//swap out will update the page's information, set present bit false, on disk = true
 				cost += SWAP_COST;									// add swap out cost
+				cout << "\nCOST: " << cost;
 				++NUMBER_SWAPOUTS;									//increase number of swap outs
 			}
 			else 
@@ -249,6 +251,7 @@ public:
 				cout << "\n Swap out for dirty bit=0 and not on disk for victim page " << page_frames[index_frame]->address;
 				Swap_Out(page_frames, index_frame, disk);			//swap out will update the page's information, set present bit false, on disk = true
 				cost += SWAP_COST;									// add swap out cost
+				cout << "\nCOST: " << cost;
 				++NUMBER_SWAPOUTS;									//increase number of swap outs
 			}
 			//If its not one of these options: the victem page was not dirty and the most update to date version is already on disk just overwrite it
@@ -358,7 +361,6 @@ void read(ofstream &trace, ofstream &debug, PageTable* pd, unsigned int address,
 			cout << "\nTotal cost: " << total_cost << " cycles -- end output for 1 "<< mode_type << " \n";
 			trace << "\nPT[" << page_table_index << "] is address " << pd[page_dir_index].pt_entries[page_table_index].address << ", 10 cycles";
 			trace << "\n" << mode_type << " address + " << page_offset << " ,10 cycles";
-			trace << "\nTotal cost: " << total_cost << " cycles -- end output for 1 " << mode_type << " \n";
 
 			PageTable_entry* temp_ptr = &(pd[page_dir_index].pt_entries[page_table_index]);
 			cout << "\n Before change presentbit addr:  " << pd[page_dir_index].pt_entries[page_table_index].address<<"Pbit= "<< pd[page_dir_index].pt_entries[page_table_index].Presentbit;
@@ -367,7 +369,8 @@ void read(ofstream &trace, ofstream &debug, PageTable* pd, unsigned int address,
 			memory.allocate_free_frames(temp_ptr, total_cost);
 			if (mode == 'w')
 				pd[page_dir_index].pt_entries[page_table_index].Dirtybit = 1;
-			
+
+			trace << "\nTotal cost: " << total_cost << " cycles -- end output for 1 " << mode_type << " \n";
 			cout << "\n After Change address " << pd[page_dir_index].pt_entries[page_table_index].address;
 			cout << "\n After Change presentbit " << pd [page_dir_index].pt_entries[page_table_index].Presentbit;
 			debug << "\n After Change address " << pd[page_dir_index].pt_entries[page_table_index].address;
