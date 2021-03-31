@@ -21,9 +21,6 @@ char generate_read_write()
 		return'r';
 }
 
-//function to generate address for input
-//find 1024 and shift it left by 22,12. and mask
-
 //function to generate random number between 1-1000 for address 2
 int generate_address2()
 {
@@ -32,13 +29,23 @@ int generate_address2()
 
 unsigned int generate_address1() {
 	unsigned int max_address = 4294967295;
-	return(rand() % (max_address));
+	int choose_random = rand() % 4;
+	if (choose_random == 1)
+		return(rand() % max_address);
+	else if(choose_random == 2)
+		return(rand() % (max_address)+4190208);
+	else if (choose_random == 3)
+		return(rand() % (max_address)+49496729);
+	else
+		return(rand() % (max_address)+4095);
+
+
 }
 
 int main()
 {
-	ofstream debugfile, tracefile;
-	debugfile.open("address.txt");
+	ofstream outputfile;
+	outputfile.open("input.txt");
 	char letter;
 	unsigned seed;
 	int addr1;
@@ -48,32 +55,33 @@ int main()
 	srand(seed);
 
 	randomNumber = (rand() % 10) + 1;
-	debugfile << "p	" << randomNumber;
+	outputfile << "p	" << randomNumber;
 	letter = generate_read_write();
 
+	int num_lines = (rand() % 40) + 10;		//number of lines for generating addresses
 
-	for (int i = 0; i < 20; ++i)
+	for (int i = 0; i < num_lines; ++i)
 	{
-		debugfile << endl;
+		outputfile << endl;
 		for (int i = 0; i < 5; ++i)
 		{
-			letter = generate_read_write();
+			letter = generate_read_write(); 
 			if (letter == 'r')
 			{
 				addr1 = generate_address1();
-				debugfile << "r  " << addr1 << "  ";
+				outputfile << "r  " << addr1 << "  ";
 
 			}
 			else    //write operation
 			{
 				addr1 = generate_address1();
 				addr2 = generate_address2();
-				debugfile << "w  " << addr1 << "   " << addr2 << "  ";
+				outputfile << "w  " << addr1 << "   " << addr2 << "  ";
 			}
 
 		}
 	}
-	debugfile.close();
+	outputfile.close();
 }
 
 
