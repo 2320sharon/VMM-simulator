@@ -1,0 +1,82 @@
+// Address_Generator.cpp : This file contains the 'main' function. Program execution begins and ends ther
+
+#include<cstdlib>
+#include<string>
+#include<iostream>
+#include <fstream>
+#include <sstream> 
+#include <time.h>
+
+using namespace std;
+
+//function to generate r or w
+char generate_read_write()
+{
+	int randomNumber;
+	randomNumber = (rand() % 10);
+	//cout << randomNumber<<endl;
+	if (randomNumber % 2 == 0)
+		return 'w';
+	else
+		return'r';
+}
+
+//function to generate address for input
+//find 1024 and shift it left by 22,12. and mask
+
+//function to generate random number between 1-1000 for address 2
+int generate_address2()
+{
+	return ((rand() % 1000));
+}
+
+unsigned int generate_address1() {
+	unsigned int max_address = 4294967295;
+	return(rand() % (max_address));
+}
+
+int main()
+{
+	ofstream debugfile, tracefile;
+	debugfile.open("address.txt");
+	char letter;
+	unsigned seed;
+	int addr1;
+	int addr2;
+	int randomNumber;
+	seed = time(0);
+	srand(seed);
+
+	randomNumber = (rand() % 10) + 1;
+	debugfile << "p	" << randomNumber;
+	letter = generate_read_write();
+
+
+	for (int i = 0; i < 20; ++i)
+	{
+		debugfile << endl;
+		for (int i = 0; i < 5; ++i)
+		{
+			letter = generate_read_write();
+			if (letter == 'r')
+			{
+				addr1 = generate_address1();
+				debugfile << "r  " << addr1 << "  ";
+
+			}
+			else    //write operation
+			{
+				addr1 = generate_address1();
+				addr2 = generate_address2();
+				debugfile << "w  " << addr1 << "   " << addr2 << "  ";
+			}
+
+		}
+	}
+	debugfile.close();
+}
+
+
+
+
+
